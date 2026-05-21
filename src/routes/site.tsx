@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { mockCompany, mockServices } from "@/data";
+import { useCompany, useServices } from "@/hooks/useData";
 import { WhatsAppButton } from "@/components/whatsapp-button";
 import { BRAND } from "@/config/brand";
 import { ShieldCheck, MessageCircle, ClipboardList, Clock, MapPin, Instagram } from "lucide-react";
@@ -9,25 +9,26 @@ import { ShieldCheck, MessageCircle, ClipboardList, Clock, MapPin, Instagram } f
 export const Route = createFileRoute("/site")({
   head: () => ({
     meta: [
-      { title: `${mockCompany.name} · Serviços técnicos` },
-      { name: "description", content: mockCompany.tagline ?? "" },
-      { property: "og:title", content: mockCompany.name },
-      { property: "og:description", content: mockCompany.tagline ?? "" },
+      { title: `Serviços técnicos` },
+      { name: "description", content: "" },
     ],
   }),
   component: SitePage,
 });
 
 function SitePage() {
+  const { data: company } = useCompany();
+  const { data: services = [] } = useServices();
+  const c = company ?? { name: "Empresa", region: "", whatsapp: "", instagram: "", hours: "" };
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border bg-card">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-4">
           <div className="flex items-center gap-3">
             <img src={BRAND.logoIcon} className="h-10 w-10 rounded-lg object-contain" alt="" />
-            <div><p className="font-semibold">{mockCompany.name}</p><p className="text-xs text-muted-foreground">{mockCompany.region}</p></div>
+            <div><p className="font-semibold">{c.name}</p><p className="text-xs text-muted-foreground">{c.region}</p></div>
           </div>
-          <WhatsAppButton phone={mockCompany.whatsapp} label="WhatsApp" variant="default" />
+          <WhatsAppButton phone={c.whatsapp} label="WhatsApp" variant="default" />
         </div>
       </header>
 
@@ -35,7 +36,7 @@ function SitePage() {
         <h1 className="text-3xl font-bold tracking-tight sm:text-5xl">Serviços de manutenção com atendimento rápido, organizado e profissional.</h1>
         <p className="mx-auto mt-4 max-w-2xl text-muted-foreground">Orçamentos pelo WhatsApp, execução com checklist e acompanhamento do serviço em tempo real.</p>
         <div className="mt-6 flex flex-wrap justify-center gap-2">
-          <WhatsAppButton phone={mockCompany.whatsapp} message="Olá! Quero um orçamento." label="Pedir orçamento" variant="default" size="lg" />
+          <WhatsAppButton phone={c.whatsapp} message="Olá! Quero um orçamento." label="Pedir orçamento" variant="default" size="lg" />
           <Button size="lg" variant="outline" asChild><a href="#servicos">Ver serviços</a></Button>
         </div>
       </section>
@@ -43,7 +44,7 @@ function SitePage() {
       <section id="servicos" className="mx-auto max-w-5xl px-4 py-12">
         <h2 className="mb-6 text-2xl font-semibold">Serviços</h2>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {mockServices.slice(0, 6).map((s) => (
+          {services.slice(0, 6).map((s) => (
             <Card key={s.id} className="p-5">
               <p className="font-semibold">{s.name}</p>
               <p className="text-xs text-muted-foreground">{s.category}</p>
@@ -85,10 +86,10 @@ function SitePage() {
       <section className="mx-auto max-w-5xl px-4 py-12">
         <h2 className="mb-6 text-2xl font-semibold">Contatos</h2>
         <Card className="grid gap-3 p-5 sm:grid-cols-2 text-sm">
-          <p><MessageCircle className="mr-2 inline h-4 w-4" />WhatsApp: {mockCompany.whatsapp}</p>
-          <p><Instagram className="mr-2 inline h-4 w-4" />{mockCompany.instagram}</p>
-          <p><MapPin className="mr-2 inline h-4 w-4" />{mockCompany.region}</p>
-          <p><Clock className="mr-2 inline h-4 w-4" />{mockCompany.hours}</p>
+          <p><MessageCircle className="mr-2 inline h-4 w-4" />WhatsApp: {c.whatsapp}</p>
+          <p><Instagram className="mr-2 inline h-4 w-4" />{c.instagram}</p>
+          <p><MapPin className="mr-2 inline h-4 w-4" />{c.region}</p>
+          <p><Clock className="mr-2 inline h-4 w-4" />{c.hours}</p>
         </Card>
       </section>
 

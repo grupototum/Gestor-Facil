@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Gift, Phone, MessageCircle, FileText, CheckCircle2, XCircle, Copy } from "lucide-react";
-import { mockReferrals, findCustomer } from "@/data";
+import { useReferrals, useCustomers, useUpdateReferral } from "@/hooks/useData";
 import { dateBR } from "@/lib/format";
 import { waLink, copyToClipboard } from "@/lib/whatsapp";
 import { toast } from "sonner";
@@ -42,7 +42,9 @@ export const Route = createFileRoute("/_app/indicacoes")({
 });
 
 function IndicacoesPage() {
-  const [items, setItems] = useState<Referral[]>(mockReferrals);
+  const { data: items = [] } = useReferrals();
+  const { data: customers = [] } = useCustomers();
+  const updateReferral = useUpdateReferral();
   const [filter, setFilter] = useState<"Todas" | ReferralStatus>("Todas");
 
   const counts = useMemo(() => {
@@ -59,7 +61,8 @@ function IndicacoesPage() {
   const visible = filter === "Todas" ? items : items.filter((i) => i.status === filter);
 
   const update = (id: string, status: ReferralStatus) => {
-    setItems((prev) => prev.map((i) => (i.id === id ? { ...i, status } : i)));
+    const ref = items.find((i) => i.id === id);
+    if (ref) updateReferral.mutate({ ...ref, status });
     toast.success(`Status atualizado para "${status}"`);
   };
 
@@ -97,7 +100,7 @@ function IndicacoesPage() {
         )}
 
         {visible.map((r) => {
-          const from = findCustomer(r.fromCustomerId);
+          const from = customers.find((c) => c.id === r.fromCustomerId);
           const step = NEXT_STEP[r.status];
           const StepIcon = step.icon;
           const waMsg = `Olá, ${r.name}! Sou da equipe e ${from?.name ?? "um cliente"} indicou seu contato para o serviço de ${r.serviceType}. Posso te ajudar?`;

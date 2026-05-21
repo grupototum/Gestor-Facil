@@ -1,9 +1,9 @@
-import { createFileRoute, notFound } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Timeline } from "@/components/timeline";
 import { StatusBadge, statusTone } from "@/components/status-badge";
-import { findQuoteByToken, findWorkOrderByToken, findCustomer, findService, mockCompany } from "@/data";
+import { useQuotes, useWorkOrders, useCustomers, useServices, useCompany } from "@/hooks/useData";
 import { brl, dateBR } from "@/lib/format";
 import { WhatsAppButton } from "@/components/whatsapp-button";
 import { Star, UserPlus, ShieldCheck } from "lucide-react";
@@ -11,21 +11,25 @@ import { BRAND } from "@/config/brand";
 
 export const Route = createFileRoute("/portal/$token")({
   head: () => ({ meta: [{ title: "Acompanhamento · CampoOS" }] }),
-  loader: ({ params }) => {
-    const quote = findQuoteByToken(params.token);
-    const order = findWorkOrderByToken(params.token);
-    if (!quote && !order) throw notFound();
-    return { quote, order };
-  },
   component: PortalPage,
-  notFoundComponent: () => <div className="p-8 text-center text-muted-foreground">Link inválido.</div>,
 });
 
 function PortalPage() {
-  const { quote, order } = Route.useLoaderData();
+  const { token } = Route.useParams();
+  const { data: quotes = [] } = useQuotes();
+  const { data: workOrders = [] } = useWorkOrders();
+  const { data: customers = [] } = useCustomers();
+  const { data: services = [] } = useServices();
+  const { data: company } = useCompany();
+
+  const quote = quotes.find((q) => q.publicToken === token);
+  const order = workOrders.find((w) => w.publicToken === token);
   const item: any = order ?? quote;
-  const customer = findCustomer(item.customerId);
-  const service = findService(item.serviceId);
+
+  if (!item) return <div className="p-8 text-center text-muted-foreground">Link inválido.</div>;
+
+  const customer = customers.find((c) => c.id === item.customerId);
+  const service = services.find((s) => s.id === item.serviceId);
   const value = order ? order.value : quote!.finalValue;
 
   return (
@@ -34,8 +38,8 @@ function PortalPage() {
         <div className="mx-auto flex max-w-2xl items-center gap-3 px-4 py-4">
           <img src={BRAND.logoIcon} className="h-10 w-10 rounded-lg object-contain" alt="" />
           <div>
-            <p className="font-semibold">{mockCompany.name}</p>
-            <p className="text-xs text-muted-foreground">{mockCompany.region}</p>
+            <p className="font-semibold">{company?.name ?? "Empresa"}</p>
+            <p className="text-xs text-muted-foreground">{company?.region ?? ""}</p>
           </div>
         </div>
       </header>
@@ -67,7 +71,7 @@ function PortalPage() {
         <Card className="p-5">
           <p className="mb-3 text-sm font-semibold">O que você pode fazer agora</p>
           <div className="grid gap-2">
-            <WhatsAppButton phone={mockCompany.whatsapp} message="Olá! Quero falar sobre meu atendimento." label="Falar no WhatsApp" variant="default" />
+            <WhatsAppButton phone={company?.whatsapp ?? ""} message="Olá! Quero falar sobre meu atendimento." label="Falar no WhatsApp" variant="default" />
             <Button variant="outline" className="gap-2"><UserPlus className="h-4 w-4" /> Indicar um amigo</Button>
             <Button variant="outline" className="gap-2"><Star className="h-4 w-4" /> Avaliar atendimento</Button>
           </div>

@@ -1,8 +1,8 @@
-import { createFileRoute, notFound, Link } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { PageHeader } from "@/components/page-header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { findQuote, findCustomer, findService, mockPricing } from "@/data";
+import { useQuote, useCustomers, useServices, usePricing } from "@/hooks/useData";
 import { brl, dateBR } from "@/lib/format";
 import { StatusBadge, statusTone } from "@/components/status-badge";
 import { calcQuote } from "@/lib/pricing";
@@ -11,19 +11,20 @@ import { copyToClipboard } from "@/lib/whatsapp";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/orcamentos/$id")({
-  loader: ({ params }) => {
-    const quote = findQuote(params.id);
-    if (!quote) throw notFound();
-    return { quote };
-  },
   component: QuoteDetail,
-  notFoundComponent: () => <div className="p-8 text-center text-muted-foreground">Orçamento não encontrado.</div>,
 });
 
 function QuoteDetail() {
-  const { quote } = Route.useLoaderData();
-  const customer = findCustomer(quote.customerId);
-  const service = findService(quote.serviceId);
+  const { id } = Route.useParams();
+  const { data: quote } = useQuote(id);
+  const { data: customers = [] } = useCustomers();
+  const { data: services = [] } = useServices();
+  const { data: pricing } = usePricing();
+
+  if (!quote) return <div className="p-8 text-center text-muted-foreground">Orçamento não encontrado.</div>;
+
+  const customer = customers.find((c) => c.id === quote.customerId);
+  const service = services.find((s) => s.id === quote.serviceId);
   const calc = calcQuote({
     estimatedMinutes: quote.estimatedMinutes,
     complexity: quote.complexity,
@@ -32,7 +33,7 @@ function QuoteDetail() {
     partsCost: quote.partsCost,
     partsMargin: quote.partsMargin,
     discount: quote.discount,
-    settings: mockPricing,
+    settings: pricing ?? { hourRate: 100, visitFee: 70, defaultMargin: 25, warrantyDays: 90, quoteValidityDays: 7, urgencyFast: 15, urgencyEmergency: 30, urgencyAfterHours: 50 },
   });
   const msg = `Olá ${customer?.name?.split(" ")[0]}! Segue orçamento ${quote.number}: ${brl(quote.finalValue)}. Garantia: ${quote.warranty.days} dias. Posso agendar?`;
 

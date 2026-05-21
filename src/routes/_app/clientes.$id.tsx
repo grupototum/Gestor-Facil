@@ -1,28 +1,28 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { PageHeader } from "@/components/page-header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { findCustomer, mockQuotes, mockWorkOrders } from "@/data";
+import { useCustomer, useQuotes, useWorkOrders } from "@/hooks/useData";
 import { UserCircle2, Plus, FileText, Wrench, Send, Star, MessageCircle } from "lucide-react";
 import { WhatsAppButton } from "@/components/whatsapp-button";
 import { brl, dateBR } from "@/lib/format";
 import { StatusBadge, statusTone } from "@/components/status-badge";
 
 export const Route = createFileRoute("/_app/clientes/$id")({
-  head: ({ params }) => ({ meta: [{ title: `Cliente · CampoOS` }] }),
-  loader: ({ params }) => {
-    const customer = findCustomer(params.id);
-    if (!customer) throw notFound();
-    return { customer };
-  },
+  head: () => ({ meta: [{ title: `Cliente · CampoOS` }] }),
   component: CustomerDetail,
-  notFoundComponent: () => <div className="p-8 text-center text-muted-foreground">Cliente não encontrado.</div>,
 });
 
 function CustomerDetail() {
-  const { customer } = Route.useLoaderData();
-  const quotes = mockQuotes.filter((q) => q.customerId === customer.id);
-  const orders = mockWorkOrders.filter((o) => o.customerId === customer.id);
+  const { id } = Route.useParams();
+  const { data: customer } = useCustomer(id);
+  const { data: quotes = [] } = useQuotes();
+  const { data: workOrders = [] } = useWorkOrders();
+
+  if (!customer) return <div className="p-8 text-center text-muted-foreground">Cliente não encontrado.</div>;
+
+  const customerQuotes = quotes.filter((q) => q.customerId === customer.id);
+  const orders = workOrders.filter((o) => o.customerId === customer.id);
   const warranties = orders.filter((o) => o.warranty.active);
 
   return (

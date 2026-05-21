@@ -1,4 +1,4 @@
-import { createFileRoute, notFound } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { PageHeader } from "@/components/page-header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,26 +6,34 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Timeline } from "@/components/timeline";
 import { StatusBadge, statusTone } from "@/components/status-badge";
 import { WhatsAppButton } from "@/components/whatsapp-button";
-import { findWorkOrder, findCustomer, findService } from "@/data";
+import { useWorkOrder, useCustomers, useServices, useUpdateWorkOrder } from "@/hooks/useData";
 import { brl, dateTimeBR } from "@/lib/format";
 import { Wrench } from "lucide-react";
 import { useState } from "react";
 
 export const Route = createFileRoute("/_app/ordens/$id")({
-  loader: ({ params }) => {
-    const order = findWorkOrder(params.id);
-    if (!order) throw notFound();
-    return { order };
-  },
   component: OrderDetail,
-  notFoundComponent: () => <div className="p-8 text-center text-muted-foreground">OS não encontrada.</div>,
 });
 
 function OrderDetail() {
-  const { order } = Route.useLoaderData();
-  const customer = findCustomer(order.customerId);
-  const service = findService(order.serviceId);
-  const [checklist, setChecklist] = useState(order.checklist);
+  const { id } = Route.useParams();
+  const { data: order } = useWorkOrder(id);
+  const { data: customers = [] } = useCustomers();
+  const { data: services = [] } = useServices();
+  const updateOrder = useUpdateWorkOrder();
+  const customer = customers.find((c) => c.id === order?.customerId);
+  const service = services.find((s) => s.id === order?.serviceId);
+  const [checklist, setChecklist] = useState(order?.checklist ?? []);
+
+  if (!order) return <div className="p-8 text-center text-muted-foreground">OS não encontrada.</div>;
+
+  const handleChecklistChange = (i: number, done: boolean) => {
+    if (!order) return;
+    const next = [...checklist];
+    next[i] = { ...next[i], done };
+    setChecklist(next);
+    updateOrder.mutate({ ...order, checklist: next });
+  };
 
   return (
     <div className="space-y-6">
@@ -73,11 +81,7 @@ function OrderDetail() {
             <label key={i} className="flex items-center gap-3 rounded-lg p-2 hover:bg-muted/50">
               <Checkbox
                 checked={item.done}
-                onCheckedChange={(v) => {
-                  const next = [...checklist];
-                  next[i] = { ...item, done: !!v };
-                  setChecklist(next);
-                }}
+                onCheckedChange={(v) => handleChecklistChange(i, !!v)}
               />
               <span className={item.done ? "text-muted-foreground line-through" : ""}>{item.item}</span>
             </label>

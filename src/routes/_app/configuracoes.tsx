@@ -5,10 +5,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { mockCompany, mockPricing } from "@/data";
+import { useCompany, usePricing, useUpdateCompany, useUpdatePricing } from "@/hooks/useData";
 import { useFontScale } from "@/contexts/font-scale";
 import { Settings } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/configuracoes")({
@@ -18,7 +18,15 @@ export const Route = createFileRoute("/_app/configuracoes")({
 
 function ConfigPage() {
   const { scale, setScale } = useFontScale();
-  const [pricing, setPricing] = useState(mockPricing);
+  const { data: company } = useCompany();
+  const { data: pricingData } = usePricing();
+  const updateCompany = useUpdateCompany();
+  const updatePricing = useUpdatePricing();
+  const [pricing, setPricing] = useState(pricingData ?? { hourRate: 100, visitFee: 70, defaultMargin: 25, warrantyDays: 90, quoteValidityDays: 7, urgencyFast: 15, urgencyEmergency: 30, urgencyAfterHours: 50 });
+  const [companyForm, setCompanyForm] = useState(company ?? { id: "c1", name: "", whatsapp: "", region: "", hours: "", instagram: "", primaryColor: "#2d3aa8" });
+
+  useEffect(() => { if (pricingData) setPricing(pricingData); }, [pricingData]);
+  useEffect(() => { if (company) setCompanyForm(company); }, [company]);
 
   return (
     <div className="space-y-6">
@@ -28,10 +36,11 @@ function ConfigPage() {
           <AccordionTrigger>Dados da empresa</AccordionTrigger>
           <AccordionContent>
             <Card className="grid gap-3 p-4 sm:grid-cols-2">
-              <div className="space-y-1.5"><Label>Nome</Label><Input defaultValue={mockCompany.name} /></div>
-              <div className="space-y-1.5"><Label>WhatsApp</Label><Input defaultValue={mockCompany.whatsapp} /></div>
-              <div className="space-y-1.5"><Label>Instagram</Label><Input defaultValue={mockCompany.instagram} /></div>
-              <div className="space-y-1.5"><Label>Região</Label><Input defaultValue={mockCompany.region} /></div>
+              <div className="space-y-1.5"><Label>Nome</Label><Input value={companyForm.name} onChange={(e) => setCompanyForm({ ...companyForm, name: e.target.value })} /></div>
+              <div className="space-y-1.5"><Label>WhatsApp</Label><Input value={companyForm.whatsapp} onChange={(e) => setCompanyForm({ ...companyForm, whatsapp: e.target.value })} /></div>
+              <div className="space-y-1.5"><Label>Instagram</Label><Input value={companyForm.instagram ?? ""} onChange={(e) => setCompanyForm({ ...companyForm, instagram: e.target.value })} /></div>
+              <div className="space-y-1.5"><Label>Região</Label><Input value={companyForm.region} onChange={(e) => setCompanyForm({ ...companyForm, region: e.target.value })} /></div>
+              <div className="sm:col-span-2"><Button onClick={() => updateCompany.mutate(companyForm, { onSuccess: () => toast.success("Empresa salva") })}>Salvar empresa</Button></div>
             </Card>
           </AccordionContent>
         </AccordionItem>
@@ -48,7 +57,7 @@ function ConfigPage() {
               <Field label="Urgência rápida (%)" value={pricing.urgencyFast} onChange={(v) => setPricing({ ...pricing, urgencyFast: v })} />
               <Field label="Emergência (%)" value={pricing.urgencyEmergency} onChange={(v) => setPricing({ ...pricing, urgencyEmergency: v })} />
               <Field label="Fora de horário (%)" value={pricing.urgencyAfterHours} onChange={(v) => setPricing({ ...pricing, urgencyAfterHours: v })} />
-              <div className="sm:col-span-2"><Button onClick={() => { localStorage.setItem("campoos.pricing", JSON.stringify(pricing)); toast.success("Salvo"); }}>Salvar valores</Button></div>
+              <div className="sm:col-span-2"><Button onClick={() => updatePricing.mutate(pricing, { onSuccess: () => toast.success("Valores salvos") })}>Salvar valores</Button></div>
             </Card>
           </AccordionContent>
         </AccordionItem>

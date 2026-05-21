@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/select";
 import { Sparkles, ArrowLeft, ArrowRight, Check, AlertTriangle, Copy, Send } from "lucide-react";
 import { useMemo, useState } from "react";
-import { mockCustomers, mockServices, mockPricing } from "@/data";
+import { useCustomers, useServices, usePricing, useCreateQuote } from "@/hooks/useData";
 import type { BillingType, Complexity, Urgency } from "@/types";
 import { calcQuote } from "@/lib/pricing";
 import { brl } from "@/lib/format";
@@ -46,13 +46,17 @@ const PROBLEMS = ["Chuveiro", "Ventilador", "Tomada", "Interruptor", "Vazamento"
 
 function QuoteWizard() {
   const navigate = useNavigate();
+  const { data: customers = [] } = useCustomers();
+  const { data: services = [] } = useServices();
+  const { data: pricing } = usePricing();
+  const createQuote = useCreateQuote();
   const [step, setStep] = useState(0);
 
   // Estado do wizard
-  const [customerId, setCustomerId] = useState<string>("u1");
+  const [customerId, setCustomerId] = useState<string>("");
   const [problem, setProblem] = useState("Chuveiro");
   const [photoStatus, setPhotoStatus] = useState<"sim" | "naoAinda" | "naoPrecisa" | "precisoPedir">("sim");
-  const [serviceId, setServiceId] = useState("s1");
+  const [serviceId, setServiceId] = useState("");
   const [billing, setBilling] = useState<BillingType>("Fixo");
   const [complexity, setComplexity] = useState<Complexity>("Simples");
   const [urgency, setUrgency] = useState<Urgency>("Normal");
@@ -66,8 +70,9 @@ function QuoteWizard() {
   const [warrantyDays, setWarrantyDays] = useState(90);
   const [discount, setDiscount] = useState(0);
 
-  const customer = mockCustomers.find((c) => c.id === customerId);
-  const service = mockServices.find((s) => s.id === serviceId);
+  const customer = customers.find((c) => c.id === customerId);
+  const service = services.find((s) => s.id === serviceId);
+  const settings = pricing ?? { hourRate: 100, visitFee: 70, defaultMargin: 25, warrantyDays: 90, quoteValidityDays: 7, urgencyFast: 15, urgencyEmergency: 30, urgencyAfterHours: 50 };
 
   const result = useMemo(
     () =>
@@ -79,15 +84,30 @@ function QuoteWizard() {
         partsCost,
         partsMargin,
         discount,
-        settings: mockPricing,
+        settings,
       }),
-    [estimatedMinutes, complexity, urgency, travelFee, partsCost, partsMargin, discount],
+    [estimatedMinutes, complexity, urgency, travelFee, partsCost, partsMargin, discount, settings],
   );
 
   const next = () => setStep((s) => Math.min(s + 1, STEPS.length - 1));
   const prev = () => setStep((s) => Math.max(s - 1, 0));
 
   const waMessage = `Olá ${customer?.name?.split(" ")[0] ?? ""}! Segue orçamento para "${problem}":\n\nValor: ${brl(result.values.recommended)}\nPrazo de garantia: ${warrantyDays} dias\nValidade do orçamento: 7 dias\n\nPodemos agendar?`;
+
+  const handleSave = () => {
+    if (!customerId || !serviceId) { toast.error("Selecione cliente e serviço"); return; }
+    const validity = new Date();
+    validity.setDate(validity.getDate() + (pricing?.quoteValidityDays ?? 7));
+    createQuote.mutate({
+      customerId, serviceId, problem, billing, complexity, urgency, estimatedMinutes, travelFee, partsCost, partsMargin, discount,
+      values: result.values, finalValue: result.values.recommended,
+      warranty: { enabled: warrantyEnabled, days: warrantyDays, coverage: "Mão de obra" },
+      status: "Rascunho", validityDate: validity.toISOString().split("T")[0],
+    }, {
+      onSuccess: () => { toast.success("Orçamento salvo"); navigate({ to: "/orcamentos" }); },
+      onError: () => toast.error("Erro ao salvar orçamento"),
+    });
+  };
 
   return (
     <div className="space-y-6">
@@ -113,7 +133,7 @@ function QuoteWizard() {
             <Select value={customerId} onValueChange={setCustomerId}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                {mockCustomers.map((c) => (
+                {customers.map((c) => (
                   <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                 ))}
               </SelectContent>
@@ -178,12 +198,12 @@ function QuoteWizard() {
             <Label>Serviço base</Label>
             <Select value={serviceId} onValueChange={(v) => {
               setServiceId(v);
-              const s = mockServices.find((x) => x.id === v);
+              const s = services.find((x) => x.id === v);
               if (s) { setBilling(s.billing); setEstimatedMinutes(s.averageMinutes); }
             }}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                {mockServices.map((s) => (
+                {services.map((s) => (
                   <SelectItem key={s.id} value={s.id}>{s.name} · {s.category}</SelectItem>
                 ))}
               </SelectContent>
@@ -232,9 +252,9 @@ function QuoteWizard() {
           <div className="space-y-2">
             {([
               ["Normal", "Sem acréscimo"],
-              ["Hoje ou amanhã", `+${mockPricing.urgencyFast}%`],
-              ["Agora ou emergência", `+${mockPricing.urgencyEmergency}%`],
-              ["Noite, domingo ou feriado", `+${mockPricing.urgencyAfterHours}%`],
+              ["Hoje ou amanhã", `+${settings.urgencyFast}%`],
+              ["Agora ou emergência", `+${settings.urgencyEmergency}%`],
+              ["Noite, domingo ou feriado", `+${settings.urgencyAfterHours}%`],
             ] as const).map(([k, d]) => (
               <button
                 key={k}
@@ -396,7 +416,7 @@ function QuoteWizard() {
           </div>
 
           <div className="mt-6 flex flex-wrap gap-2">
-            <Button size="lg" onClick={() => { toast.success("Rascunho salvo"); navigate({ to: "/orcamentos" }); }}>
+            <Button size="lg" onClick={handleSave} disabled={createQuote.isPending}>
               Salvar rascunho
             </Button>
             <Button size="lg" variant="outline" className="gap-2" onClick={() => { copyToClipboard(waMessage); toast.success("Mensagem copiada"); }}>

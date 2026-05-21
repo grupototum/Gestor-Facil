@@ -2,17 +2,27 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { PageHeader } from "@/components/page-header";
 import { Card } from "@/components/ui/card";
 import { StatusBadge, statusTone } from "@/components/status-badge";
-import { mockWorkOrders, findCustomer, findService } from "@/data";
+import { useWorkOrders, useCustomers, useServices } from "@/hooks/useData";
 import { brl, dateTimeBR } from "@/lib/format";
 import { Wrench } from "lucide-react";
 
 export const Route = createFileRoute("/_app/ordens/")({
   head: () => ({ meta: [{ title: "Ordens de Serviço · CampoOS" }] }),
-  component: () => (
+  component: OrdersPage,
+});
+
+function OrdersPage() {
+  const { data: workOrders = [] } = useWorkOrders();
+  const { data: customers = [] } = useCustomers();
+  const { data: services = [] } = useServices();
+  const findCustomer = (id?: string) => customers.find((c) => c.id === id);
+  const findService = (id?: string) => services.find((s) => s.id === id);
+
+  return (
     <div className="space-y-6">
       <PageHeader title="Ordens de Serviço" icon={Wrench} description="Acompanhe cada serviço da chegada até a garantia." />
       <div className="space-y-2">
-        {mockWorkOrders.map((o) => {
+        {workOrders.map((o) => {
           const c = findCustomer(o.customerId);
           const s = findService(o.serviceId);
           return (
@@ -33,5 +43,5 @@ export const Route = createFileRoute("/_app/ordens/")({
         })}
       </div>
     </div>
-  ),
-});
+  );
+}

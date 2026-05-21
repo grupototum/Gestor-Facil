@@ -21,7 +21,7 @@ import {
   CreditCard,
   Link2,
 } from "lucide-react";
-import { mockQuotes, mockWorkOrders, mockReferrals, mockFollowups, mockPayments, findCustomer } from "@/data";
+import { useQuotes, useWorkOrders, useReferrals, useFollowups, usePayments, useCustomers } from "@/hooks/useData";
 import { brl, timeBR } from "@/lib/format";
 import { copyToClipboard } from "@/lib/whatsapp";
 import { toast } from "sonner";
@@ -32,21 +32,30 @@ export const Route = createFileRoute("/_app/dashboard")({
 });
 
 function DashboardPage() {
-  const todayOrders = mockWorkOrders.filter((o) => {
+  const { data: customers = [] } = useCustomers();
+  const { data: workOrders = [] } = useWorkOrders();
+  const { data: quotes = [] } = useQuotes();
+  const { data: followups = [] } = useFollowups();
+  const { data: referrals = [] } = useReferrals();
+  const { data: payments = [] } = usePayments();
+
+  const findCustomer = (id?: string) => customers.find((c) => c.id === id);
+
+  const todayOrders = workOrders.filter((o) => {
     const d = new Date(o.scheduledAt);
     const t = new Date();
     return d.toDateString() === t.toDateString();
   });
 
-  const pendingQuotes = mockQuotes.filter((q) =>
+  const pendingQuotes = quotes.filter((q) =>
     ["Enviado", "Visualizado", "Aguardando resposta"].includes(q.status),
   );
-  const waitingResponse = mockQuotes.filter((q) => q.status === "Aguardando resposta");
-  const receivables = mockWorkOrders.filter((o) => o.paymentStatus === "Pendente" && o.status === "Concluída");
-  const pendingFollowups = mockFollowups.filter((f) => !f.done);
-  const newReferrals = mockReferrals.filter((r) => r.status === "Nova");
-  const activeWarranties = mockWorkOrders.filter((o) => o.warranty.active);
-  const monthRevenue = mockPayments.reduce((s, p) => s + p.amount, 0);
+  const waitingResponse = quotes.filter((q) => q.status === "Aguardando resposta");
+  const receivables = workOrders.filter((o) => o.paymentStatus === "Pendente" && o.status === "Concluída");
+  const pendingFollowups = followups.filter((f) => !f.done);
+  const newReferrals = referrals.filter((r) => r.status === "Nova");
+  const activeWarranties = workOrders.filter((o) => o.warranty.active);
+  const monthRevenue = payments.reduce((s, p) => s + p.amount, 0);
 
   return (
     <div className="space-y-6">

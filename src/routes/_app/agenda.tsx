@@ -5,7 +5,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { StatusBadge, statusTone } from "@/components/status-badge";
 import { WhatsAppButton } from "@/components/whatsapp-button";
-import { mockWorkOrders, findCustomer } from "@/data";
+import { useWorkOrders, useCustomers } from "@/hooks/useData";
 import { brl, timeBR, dateBR } from "@/lib/format";
 import { Calendar, Play } from "lucide-react";
 
@@ -15,9 +15,13 @@ export const Route = createFileRoute("/_app/agenda")({
 });
 
 function AgendaPage() {
+  const { data: workOrders = [] } = useWorkOrders();
+  const { data: customers = [] } = useCustomers();
+  const findCustomer = (id?: string) => customers.find((c) => c.id === id);
+
   const today = new Date().toDateString();
-  const todays = mockWorkOrders.filter((o) => new Date(o.scheduledAt).toDateString() === today);
-  const week = mockWorkOrders.filter((o) => {
+  const todays = workOrders.filter((o) => new Date(o.scheduledAt).toDateString() === today);
+  const week = workOrders.filter((o) => {
     const d = new Date(o.scheduledAt);
     const now = new Date();
     const diff = (d.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
@@ -36,14 +40,14 @@ function AgendaPage() {
         </TabsList>
         <TabsContent value="hoje" className="space-y-2"><List items={todays} /></TabsContent>
         <TabsContent value="semana" className="space-y-2"><List items={week} /></TabsContent>
-        <TabsContent value="mes" className="space-y-2"><List items={mockWorkOrders} /></TabsContent>
-        <TabsContent value="aguardando" className="space-y-2"><List items={mockWorkOrders.filter((o) => o.status === "Nova")} /></TabsContent>
+        <TabsContent value="mes" className="space-y-2"><List items={workOrders} /></TabsContent>
+        <TabsContent value="aguardando" className="space-y-2"><List items={workOrders.filter((o) => o.status === "Nova")} /></TabsContent>
       </Tabs>
     </div>
   );
 }
 
-function List({ items }: { items: typeof mockWorkOrders }) {
+function List({ items }: { items: import("@/types").WorkOrder[] }) {
   if (items.length === 0) return <Card className="p-6 text-center text-sm text-muted-foreground">Nada por aqui.</Card>;
   return (
     <>

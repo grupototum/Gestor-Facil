@@ -3,7 +3,7 @@ import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { mockPayments, mockExpenses, mockQuotes, findCustomer } from "@/data";
+import { usePayments, useExpenses, useQuotes, useCustomers } from "@/hooks/useData";
 import { brl, dateBR } from "@/lib/format";
 import { Wallet, TrendingUp, TrendingDown, BadgeDollarSign } from "lucide-react";
 
@@ -13,12 +13,18 @@ export const Route = createFileRoute("/_app/financeiro")({
 });
 
 function Financeiro() {
-  const totalIn = mockPayments.reduce((s, p) => s + p.amount, 0);
-  const totalOut = mockExpenses.reduce((s, e) => s + e.amount, 0);
+  const { data: payments = [] } = usePayments();
+  const { data: expenses = [] } = useExpenses();
+  const { data: quotes = [] } = useQuotes();
+  const { data: customers = [] } = useCustomers();
+  const findCustomer = (id?: string) => customers.find((c) => c.id === id);
+
+  const totalIn = payments.reduce((s, p) => s + p.amount, 0);
+  const totalOut = expenses.reduce((s, e) => s + e.amount, 0);
   const profit = totalIn - totalOut;
-  const ticket = totalIn / Math.max(mockPayments.length, 1);
-  const approved = mockQuotes.filter((q) => q.status === "Aprovado" || q.status === "Convertido em OS").length;
-  const refused = mockQuotes.filter((q) => q.status === "Recusado").length;
+  const ticket = totalIn / Math.max(payments.length, 1);
+  const approved = quotes.filter((q) => q.status === "Aprovado" || q.status === "Convertido em OS").length;
+  const refused = quotes.filter((q) => q.status === "Recusado").length;
 
   return (
     <div className="space-y-6">
@@ -36,7 +42,7 @@ function Financeiro() {
       <Tabs defaultValue="in">
         <TabsList className="grid grid-cols-2"><TabsTrigger value="in">Entradas</TabsTrigger><TabsTrigger value="out">Saídas</TabsTrigger></TabsList>
         <TabsContent value="in" className="space-y-2">
-          {mockPayments.map((p) => (
+          {payments.map((p) => (
             <Card key={p.id} className="flex justify-between p-3 text-sm">
               <div><p className="font-medium">{findCustomer(p.customerId)?.name}</p><p className="text-xs text-muted-foreground">{p.method} · {dateBR(p.date)}</p></div>
               <span className="font-semibold text-success">+ {brl(p.amount)}</span>
@@ -44,7 +50,7 @@ function Financeiro() {
           ))}
         </TabsContent>
         <TabsContent value="out" className="space-y-2">
-          {mockExpenses.map((e) => (
+          {expenses.map((e) => (
             <Card key={e.id} className="flex justify-between p-3 text-sm">
               <div><p className="font-medium">{e.description}</p><p className="text-xs text-muted-foreground">{e.category} · {dateBR(e.date)}</p></div>
               <span className="font-semibold text-destructive">- {brl(e.amount)}</span>

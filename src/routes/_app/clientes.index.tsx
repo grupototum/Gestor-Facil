@@ -11,7 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Users, Plus, Search, MapPin, Phone } from "lucide-react";
-import { mockCustomers } from "@/data";
+import { useCustomers, useCreateCustomer } from "@/hooks/useData";
 import type { CustomerType } from "@/types";
 import { useState } from "react";
 import { brl } from "@/lib/format";
@@ -33,10 +33,11 @@ export const Route = createFileRoute("/_app/clientes/")({
 });
 
 function ClientsPage() {
+  const { data: customers = [] } = useCustomers();
   const [search, setSearch] = useState("");
   const [type, setType] = useState<"todos" | CustomerType>("todos");
 
-  const filtered = mockCustomers.filter((c) => {
+  const filtered = customers.filter((c) => {
     const matchSearch = (c.name + c.neighborhood + c.phone).toLowerCase().includes(search.toLowerCase());
     const matchType = type === "todos" || c.type === type;
     return matchSearch && matchType;
@@ -115,32 +116,53 @@ function ClientsPage() {
 }
 
 function NewCustomerDialog() {
+  const create = useCreateCustomer();
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [whatsapp, setWhatsapp] = useState("");
+  const [neighborhood, setNeighborhood] = useState("");
+  const [type, setType] = useState<CustomerType>("Residencial");
+
+  const handleSave = () => {
+    if (!name || !phone || !neighborhood) {
+      toast.error("Preencha nome, telefone e bairro");
+      return;
+    }
+    create.mutate({ name, phone, whatsapp: whatsapp || phone, neighborhood, type, origin: "Outro" }, {
+      onSuccess: () => { toast.success("Cliente salvo"); setName(""); setPhone(""); setWhatsapp(""); setNeighborhood(""); },
+      onError: () => toast.error("Erro ao salvar cliente"),
+    });
+  };
+
   return (
     <DialogContent>
       <DialogHeader>
         <DialogTitle>Novo cliente</DialogTitle>
       </DialogHeader>
       <div className="space-y-3">
-        <div className="space-y-1.5"><Label>Nome</Label><Input placeholder="Nome do cliente" /></div>
+        <div className="space-y-1.5"><Label>Nome</Label><Input placeholder="Nome do cliente" value={name} onChange={(e) => setName(e.target.value)} /></div>
         <div className="grid grid-cols-2 gap-2">
-          <div className="space-y-1.5"><Label>WhatsApp</Label><Input placeholder="(11) 9..." /></div>
-          <div className="space-y-1.5"><Label>Bairro</Label><Input placeholder="Bairro" /></div>
+          <div className="space-y-1.5"><Label>WhatsApp</Label><Input placeholder="(11) 9..." value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} /></div>
+          <div className="space-y-1.5"><Label>Bairro</Label><Input placeholder="Bairro" value={neighborhood} onChange={(e) => setNeighborhood(e.target.value)} /></div>
         </div>
-        <div className="space-y-1.5">
-          <Label>Tipo</Label>
-          <Select defaultValue="Residencial">
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="Residencial">Residencial</SelectItem>
-              <SelectItem value="Empresa">Empresa</SelectItem>
-              <SelectItem value="Imobiliária">Imobiliária</SelectItem>
-              <SelectItem value="Condomínio">Condomínio</SelectItem>
-            </SelectContent>
-          </Select>
+        <div className="grid grid-cols-2 gap-2">
+          <div className="space-y-1.5"><Label>Telefone</Label><Input placeholder="Telefone" value={phone} onChange={(e) => setPhone(e.target.value)} /></div>
+          <div className="space-y-1.5">
+            <Label>Tipo</Label>
+            <Select value={type} onValueChange={(v) => setType(v as CustomerType)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Residencial">Residencial</SelectItem>
+                <SelectItem value="Empresa">Empresa</SelectItem>
+                <SelectItem value="Imobiliária">Imobiliária</SelectItem>
+                <SelectItem value="Condomínio">Condomínio</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
       <DialogFooter>
-        <Button onClick={() => toast.success("Cliente salvo (mock)")}>Salvar cliente</Button>
+        <Button onClick={handleSave} disabled={create.isPending}>Salvar cliente</Button>
       </DialogFooter>
     </DialogContent>
   );

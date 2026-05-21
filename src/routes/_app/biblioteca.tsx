@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { StatusBadge } from "@/components/status-badge";
-import { mockProtocols, mockChecklists, mockPOPs, mockSLAs, mockMessages } from "@/data";
+import { useProtocols, useChecklists, usePOPs, useSLAs, useMessageTemplates } from "@/hooks/useData";
 import { BookOpen, Copy } from "lucide-react";
 import { copyToClipboard } from "@/lib/whatsapp";
 import { toast } from "sonner";
@@ -17,6 +17,11 @@ export const Route = createFileRoute("/_app/biblioteca")({
 });
 
 function BibliotecaPage() {
+  const { data: protocols = [] } = useProtocols();
+  const { data: checklists = [] } = useChecklists();
+  const { data: pops = [] } = usePOPs();
+  const { data: slas = [] } = useSLAs();
+  const { data: messages = [] } = useMessageTemplates();
   return (
     <div className="space-y-6">
       <PageHeader title="Biblioteca Profissional" icon={BookOpen} description="Protocolos, checklists, POPs, SLAs e mensagens prontas." />
@@ -30,7 +35,7 @@ function BibliotecaPage() {
         </TabsList>
 
         <TabsContent value="proto" className="grid gap-3 sm:grid-cols-2">
-          {mockProtocols.map((p) => (
+          {protocols.map((p) => (
             <Card key={p.id} className="p-4">
               <p className="font-semibold">{p.title}</p>
               <p className="mt-1 text-xs text-muted-foreground">{p.description}</p>
@@ -42,17 +47,17 @@ function BibliotecaPage() {
         </TabsContent>
 
         <TabsContent value="check" className="space-y-4">
-          {mockChecklists.map((c) => <ChecklistCard key={c.id} title={c.title} items={c.items} />)}
+          {checklists.map((c) => <ChecklistCard key={c.id} title={c.title} items={c.items} />)}
         </TabsContent>
 
         <TabsContent value="pop" className="grid gap-3 sm:grid-cols-2">
-          {mockPOPs.map((p) => (
+          {pops.map((p) => (
             <Card key={p.id} className="p-4"><p className="font-semibold">{p.title}</p><p className="mt-1 text-sm text-muted-foreground">{p.body}</p></Card>
           ))}
         </TabsContent>
 
         <TabsContent value="sla" className="space-y-2">
-          {mockSLAs.map((s) => (
+          {slas.map((s) => (
             <Card key={s.id} className="flex items-center justify-between p-4">
               <div><p className="font-medium">{s.label}</p><p className="text-xs text-muted-foreground">Meta: {s.target}</p></div>
               <StatusBadge tone={s.status === "ok" ? "success" : s.status === "warn" ? "warning" : "destructive"}>
@@ -63,7 +68,7 @@ function BibliotecaPage() {
         </TabsContent>
 
         <TabsContent value="msg" className="grid gap-3 sm:grid-cols-2">
-          {mockMessages.map((m) => (
+          {messages.map((m) => (
             <Card key={m.id} className="p-4">
               <p className="font-semibold">{m.label}</p>
               <p className="mt-1 text-sm text-muted-foreground">{m.body}</p>

@@ -1,17 +1,26 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { PageHeader } from "@/components/page-header";
 import { Card } from "@/components/ui/card";
-import { mockQuotes, mockWorkOrders, findCustomer } from "@/data";
+import { useQuotes, useWorkOrders, useCustomers } from "@/hooks/useData";
 import { ExternalLink } from "lucide-react";
 
 export const Route = createFileRoute("/_app/portal/")({
   head: () => ({ meta: [{ title: "Portal do Cliente · CampoOS" }] }),
-  component: () => (
+  component: PortalIndexPage,
+});
+
+function PortalIndexPage() {
+  const { data: quotes = [] } = useQuotes();
+  const { data: workOrders = [] } = useWorkOrders();
+  const { data: customers = [] } = useCustomers();
+  const findCustomer = (id?: string) => customers.find((c) => c.id === id);
+
+  return (
     <div className="space-y-6">
       <PageHeader title="Portal do Cliente" icon={ExternalLink} description="Veja como o cliente acompanha o serviço pelo link público." />
       <p className="text-sm text-muted-foreground">Escolha um exemplo para visualizar:</p>
       <div className="grid gap-2 md:grid-cols-2">
-        {[...mockQuotes, ...mockWorkOrders].map((item: any) => {
+        {[...quotes, ...workOrders].map((item: any) => {
           const c = findCustomer(item.customerId);
           return (
             <Link key={item.id} to="/portal/$token" params={{ token: item.publicToken }}>
@@ -24,5 +33,5 @@ export const Route = createFileRoute("/_app/portal/")({
         })}
       </div>
     </div>
-  ),
-});
+  );
+}
