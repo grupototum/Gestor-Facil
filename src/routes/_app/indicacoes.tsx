@@ -13,8 +13,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Gift, Phone, MessageCircle, FileText, CheckCircle2, XCircle, Copy } from "lucide-react";
-import { useReferrals, useCustomers, useUpdateReferral } from "@/hooks/useData";
+import { Gift, Phone, MessageCircle, FileText, CheckCircle2, XCircle, Copy, CalendarPlus } from "lucide-react";
+import { useReferrals, useCustomers, useUpdateReferral, useCreateFollowup, useWorkOrders } from "@/hooks/useData";
 import { dateBR } from "@/lib/format";
 import { waLink, copyToClipboard } from "@/lib/whatsapp";
 import { toast } from "sonner";
@@ -44,7 +44,9 @@ export const Route = createFileRoute("/_app/indicacoes")({
 function IndicacoesPage() {
   const { data: items = [] } = useReferrals();
   const { data: customers = [] } = useCustomers();
+  const { data: workOrders = [] } = useWorkOrders();
   const updateReferral = useUpdateReferral();
+  const createFollowup = useCreateFollowup();
   const [filter, setFilter] = useState<"Todas" | ReferralStatus>("Todas");
 
   const counts = useMemo(() => {
@@ -166,11 +168,78 @@ function IndicacoesPage() {
                 >
                   <Copy className="h-4 w-4" /> Copiar contato
                 </Button>
+                <AgendarAcompanhamentoDialog
+                  referral={r}
+                  fromCustomer={from}
+                  workOrders={workOrders}
+                  onSchedule={(payload) => createFollowup.mutate(payload, { onSuccess: () => toast.success("Acompanhamento agendado") })}
+                />
               </div>
             </Card>
           );
         })}
       </div>
     </div>
+  );
+}
+
+function AgendarAcompanhamentoDialog({
+  referral,
+  fromCustomer,
+  workOrders,
+  onSchedule,
+}: {
+  referral: Referral;
+  fromCustomer: import("@/types").Customer | undefined;
+  workOrders: import("@/types").WorkOrder[];
+  onSchedule: (payload: { customerId: string; workOrderId: string; kind: "1d" | "7d" | "30d"; dueDate: string; message: string }) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [dueDate, setDueDate] = useState(new Date().toISOString().split("T")[0]);
+  const [message, setMessage] = useState(`Lembrete: acompanhar indicação de ${referral.name} (${referral.serviceType})`);
+  const [kind, setKind] = useState<"1d" | "7d" | "30d">("7d");
+
+  const lastWorkOrder = workOrders.find((w) => w.customerId === referral.fromCustomerId);
+
+  const handleSave = () => {
+    onSchedule({
+      customerId: referral.fromCustomerId,
+      workOrderId: lastWorkOrder?.id ?? "",
+      kind,
+      dueDate: new Date(dueDate).toISOString(),
+      message,
+    });
+    setOpen(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button size="sm" variant="outline" className="gap-2">
+          <CalendarPlus className="h-4 w-4" /> Agendar acompanhamento
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader><DialogTitle>Agendar acompanhamento</DialogTitle></DialogHeader>
+        <div className="space-y-3">
+          <div className="space-y-1.5"><Label>Data</Label><Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} /></div>
+          <div className="space-y-1.5"><Label>Tipo</Label>
+            <Select value={kind} onValueChange={(v) => setKind(v as typeof kind)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="1d">1 dia</SelectItem>
+                <SelectItem value="7d">7 dias</SelectItem>
+                <SelectItem value="30d">30 dias</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5"><Label>Mensagem</Label><Input value={message} onChange={(e) => setMessage(e.target.value)} /></div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
+          <Button onClick={handleSave}>Agendar</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -21,6 +21,7 @@ import {
   deletePayment,
   getExpenses,
   createExpense,
+  updateExpense,
   deleteExpense,
   getCompany,
   updateCompany,
@@ -155,6 +156,22 @@ export function useCreateExpense() {
   });
 }
 
+export function useUpdateExpense() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: any) => updateExpense({ data }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["expenses"] }),
+  });
+}
+
+export function useDeleteExpense() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => deleteExpense({ data: { id } }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["expenses"] }),
+  });
+}
+
 // Company
 export function useCompany() {
   return useQuery({ queryKey: ["company"], queryFn: () => getCompany() });
@@ -226,6 +243,14 @@ export function useUpdateReferral() {
 // Followups
 export function useFollowups() {
   return useQuery({ queryKey: ["followups"], queryFn: () => getFollowups() });
+}
+
+export function useCreateFollowup() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: any) => createFollowup({ data }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["followups"] }),
+  });
 }
 
 export function useUpdateFollowup() {

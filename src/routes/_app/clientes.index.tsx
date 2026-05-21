@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Users, Plus, Search, MapPin, Phone } from "lucide-react";
+import { Users, Plus, Search, MapPin, Phone, User } from "lucide-react";
 import { useCustomers, useCreateCustomer } from "@/hooks/useData";
 import type { CustomerType } from "@/types";
 import { useState } from "react";
@@ -23,6 +23,7 @@ import {
   DialogTitle,
   DialogTrigger,
   DialogFooter,
+  DialogClose,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
@@ -56,7 +57,9 @@ function ClientsPage() {
                 <Plus className="h-4 w-4" /> Novo cliente
               </Button>
             </DialogTrigger>
-            <NewCustomerDialog />
+            <DialogContent>
+              <NewCustomerDialog />
+            </DialogContent>
           </Dialog>
         }
       />
@@ -90,9 +93,14 @@ function ClientsPage() {
           <Link key={c.id} to="/clientes/$id" params={{ id: c.id }}>
             <Card className="space-y-3 p-4 transition hover:border-primary/40">
               <div className="flex items-start justify-between gap-2">
-                <div>
-                  <p className="font-semibold">{c.name}</p>
-                  <p className="text-xs text-muted-foreground">{c.origin}</p>
+                <div className="flex items-center gap-2">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                    <span className="text-xs font-bold">{c.name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()}</span>
+                  </div>
+                  <div>
+                    <p className="font-semibold">{c.name}</p>
+                    <p className="text-xs text-muted-foreground">{c.origin}</p>
+                  </div>
                 </div>
                 <StatusBadge>{c.type}</StatusBadge>
               </div>
@@ -135,7 +143,7 @@ function NewCustomerDialog() {
   };
 
   return (
-    <DialogContent>
+    <>
       <DialogHeader>
         <DialogTitle>Novo cliente</DialogTitle>
       </DialogHeader>
@@ -162,8 +170,11 @@ function NewCustomerDialog() {
         </div>
       </div>
       <DialogFooter>
+        <DialogClose asChild>
+          <Button variant="outline" type="button">Cancelar</Button>
+        </DialogClose>
         <Button onClick={handleSave} disabled={create.isPending}>Salvar cliente</Button>
       </DialogFooter>
-    </DialogContent>
+    </>
   );
 }

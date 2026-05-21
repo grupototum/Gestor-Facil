@@ -61,6 +61,15 @@ export const createExpense = createServerFn({ method: "POST" })
     return rowToExpense(row);
   });
 
+export const updateExpense = createServerFn({ method: "POST" })
+  .handler(async ({ data }: any): Promise<Expense> => {
+    db.prepare(
+      `UPDATE expenses SET category=?, description=?, amount=?, date=? WHERE id=?`
+    ).run(data.category, data.description, data.amount, data.date, data.id);
+    const row = db.prepare("SELECT * FROM expenses WHERE id = ?").get(data.id);
+    return rowToExpense(row);
+  });
+
 export const deleteExpense = createServerFn({ method: "POST" })
   .handler(async ({ data }: any): Promise<{ id: string }> => {
     db.prepare("DELETE FROM expenses WHERE id = ?").run(data.id);
